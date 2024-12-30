@@ -1,4 +1,4 @@
-# DEPENDANCY: BeautifulSoup
+# DEPENDANCY: BeautifulSoup, ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
@@ -11,6 +11,6 @@ def epub_to_txt(epub_path, txt_path):
                 txt_file.write(soup.get_text())
 
 # Example usage
-epub_path = 'path/to/your/file.epub'
-txt_path = 'path/to/your/output.txt'
+epub_path = "C:/Users/Srulik's User/Downloads/Icarus+Needle+The+Icarus+Series+Book+5+The+-+Timothy+Zahn (1).epub"
+txt_path = 'D:/books/Icarus Needle.txt'
 epub_to_txt(epub_path, txt_path)
