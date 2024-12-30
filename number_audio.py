@@ -7,7 +7,8 @@ def prepend_numbers_to_audio_files(folder_path):
                   glob.glob(os.path.join(folder_path, '*.wav')) + \
                   glob.glob(os.path.join(folder_path, '*.flac')) + \
                   glob.glob(os.path.join(folder_path, '*.aac')) + \
-                  glob.glob(os.path.join(folder_path, '*.ogg'))
+                  glob.glob(os.path.join(folder_path, '*.ogg')) + \
+                  glob.glob(os.path.join(folder_path, '*.m4a'))
 
     # Sort files by creation time
     audio_files.sort(key=os.path.getctime)
