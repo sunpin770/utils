@@ -21,6 +21,8 @@ def prepend_numbers_to_audio_files(folder_path):
         os.rename(file_path, new_file_path)
         print(f"Renamed '{file_name}' to '{new_file_name}'")
 
+    input()
+
 if __name__ == "__main__":
     folder_path = input("Enter the folder path: ")
     prepend_numbers_to_audio_files(folder_path)

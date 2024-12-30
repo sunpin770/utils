@@ -15,27 +15,28 @@ You will need to complete the following steps once on a given computer to use th
 
 ### 2. Download This Repository
 
-1. On this GitHub page, look near the top for a green button labeled **"Code"** with a down arrow.
-2. Click on it, then select **"Download ZIP"**.
+1. On this GitHub page, look near the top for a green button labeled **Code** with a down arrow.
+2. Click on it, then select **Download ZIP**.
+![Image showing downloading the zip](docs/images/download-zip.png)
 3. A zipped folder will download to your computer. Move it to a convenient location for easy access.
 
 ### 3. Opening the Repository
 
-1. Locate the zipped folder in your file explorer, right-click on it, and select **"Extract All"**.
-2. When the dialog box appears, click **OK** (no changes are necessary).
+1. Locate the zipped folder in your file explorer, right-click on it, and select **Extract All**.
+![Image showing the 'extract all' option](docs/images/extract1.png)
+2. When the dialog box appears, click **Extract** (no changes are necessary).
 3. Once extraction is complete, you'll see both a zipped folder and an unzipped folder with the same name. You can delete the zipped folder.
-4. Open the unzipped folder, likely named **"utils-main"**.
+4. Open the unzipped folder, likely named **utils-main**.
 
 ### Folder Navigation
 
-Navigate to the **simple** folder within the structure as follows:
-
+In the folder **Utils-Main**, there will be another named the same. In that, will be the following, and some other stuff you can ignore:
 
 - **Simple scripts**: Start here.
 - **Advanced scripts**: Read the script and customize variables before use. If you're unsure what this means, that's why they are labeled "advanced."
-- **Dependencies**: You shouldn't need to access this folder.
+- **Dependencies**, **Docs**, and any files: You shouldn't need to access them.
 
-**Note**: If the file structure looks different, this document might be outdated. Look for a folder labeled **"simple"** or something similar.
+**Note**: If the file structure looks different, this document might be outdated. Look for a folder labeled **simple** or something similar.
 
 ---
 
@@ -79,4 +80,4 @@ You can run a script by double-clicking the file. If prompted to choose how to o
 
 ---
 
-Enjoy using these scripts responsibly!
+Enjoy using these scripts responsibly (responsibly was a contribution of AI formatting this doc, since I wrote in the beginning to use with caution. Of course, IIRC that's not the fullish meaning)!
