@@ -57,6 +57,12 @@ You can run a script by double-clicking the file. If prompted to choose how to o
 
 ---
 
+##### **ebook_convert.py** (simple) 
+converts any **.epub** files to **.txt**
+will prompt for a folder. just put in the path.
+
+---
+
 #### **strip_files.py** (Simple)
 
 - **Purpose**: Simplifies file names by removing a common prefix.
