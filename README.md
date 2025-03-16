@@ -1,6 +1,6 @@
 # Utility Scripts by Acolyte
 
-A collection of AI-generated or homemade scripts for easier use of Yeshiva MP3 Players (and occasionally for tasks CAD might not approve of. Be careful!).
+A collection of AI-generated or homemade scripts.
 
 ---
 
