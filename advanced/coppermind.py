@@ -1,144 +1,115 @@
 import os
 import time
 import re
-import shutil
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
-# Base URLs and directories
 BASE_URL = "https://coppermind.net"
 ALL_PAGES_URL = f"{BASE_URL}/wiki/Special:AllPages"
-DEST_DIR = "coppermind_sorted"  # Folder where categorized files will be saved
-
-# Create the destination directory if it doesn't exist.
-os.makedirs(DEST_DIR, exist_ok=True)
+# Use your custom destination folder:
+SAVE_ROOT = "C:\\Users\\Srulik's User\\Downloads\\ytdlp downloads\\The Coppermind"
 
 def sanitize_filename(name):
-    """Remove characters that are not allowed in filenames."""
-    return re.sub(r'[\\/*?:"<>|]', "_", name)
+    return re.sub(r'[\\/*?:"<>|]', '_', name)
+
+def already_saved(title):
+    base = sanitize_filename(title)
+    for root, dirs, files in os.walk(SAVE_ROOT):
+        for file in files:
+            if file.startswith(base):
+                return True
+    return False
 
 def get_driver():
-    """Set up and return a Selenium Chrome driver."""
-    options = webdriver.ChromeOptions()
-    # Remove headless option if you want the browser to be visible.
+    options = Options()
+    options.add_argument("--start-maximized")
+    # Uncomment the next line if you want headless mode
     # options.add_argument("--headless")
-    options.add_argument("--window-size=1200,800")
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    return driver
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def get_all_article_links(driver):
-    """Navigate the All Pages index and return a sorted list of article URLs."""
     print("Fetching all article links...")
-    article_links = set()
-
+    links = set()
     driver.get(ALL_PAGES_URL)
-    time.sleep(2)
 
     while True:
-        current_url = driver.current_url
-        print(f"Scraping: {current_url}")
+        time.sleep(2)
         soup = BeautifulSoup(driver.page_source, "html.parser")
-        # The links are inside the <div class="mw-allpages-body">
-        content_div = soup.find("div", class_="mw-allpages-body")
-        if content_div:
-            links = content_div.find_all("a")
-            for link in links:
-                href = link.get("href")
-                # Exclude special pages (like Special:...) 
-                if href and href.startswith("/wiki/") and not href.startswith("/wiki/Special:"):
-                    article_links.add(BASE_URL + href)
-        else:
-            print("No page content found!")
-            break
-
-        # Look for a "Next page" link
-        next_link = soup.find("a", string="Next page")
-        if next_link:
-            next_url = BASE_URL + next_link["href"]
+        page_links = soup.select("#mw-content-text ul li a")
+        for a in page_links:
+            href = a.get("href")
+            if href and href.startswith("/wiki/") and not href.startswith("/wiki/Special:"):
+                full_url = BASE_URL + href
+                links.add(full_url)
+        # Use visible text to pick out the next page link.
+        next_link = soup.find("a", text=lambda t: t and t.strip().startswith("Next page"))
+        if next_link and next_link.get("href"):
+            next_url = BASE_URL + next_link.get("href")
+            print(f"Following: {next_url}")
             driver.get(next_url)
-            time.sleep(1.5)
         else:
             break
 
-    links_list = sorted(article_links)
-    print(f"Found {len(links_list)} article links.")
-    return links_list
+    return sorted(links)
 
-def extract_article(driver, url):
-    """
-    Visit the article URL and extract the title, main text, and category names.
-    Returns: title (str), text (str), categories (list of str)
-    """
+def download_article_selenium(driver, url):
+    """Load an article page using Selenium and extract title, content, and categories."""
     driver.get(url)
-    time.sleep(1.5)
+    time.sleep(2)  # Wait for the page to load
     soup = BeautifulSoup(driver.page_source, "html.parser")
-
-    # Get the title from element with id "firstHeading"
-    title_tag = soup.find(id="firstHeading")
+    title_tag = soup.find("h1", id="firstHeading")
     content_tag = soup.find("div", class_="mw-parser-output")
+    category_links = soup.select("#mw-normal-catlinks ul li a")
 
     if not title_tag or not content_tag:
-        print(f"Skipping {url}: missing title or content.")
-        return None, None, []
+        print(f"Skipping malformed page: {url}")
+        return None, None, None
 
-    title = title_tag.get_text(strip=True)
-    # Remove unwanted tags (optional: tables, navboxes, references)
-    for tag in content_tag.find_all(["table", "div"], class_=lambda x: x and ("navbox" in x or "reference" in x)):
-        tag.decompose()
+    title = title_tag.text.strip()
+    content = content_tag.get_text(separator="\n").strip()
+    categories = [cat.text.strip() for cat in category_links]
+    return title, content, categories
 
-    # Extract text content – join paragraphs and other text blocks.
-    text = content_tag.get_text(separator="\n", strip=True)
-
-    # Get categories; these are typically in the div with id "catlinks"
-    cat_div = soup.find("div", id="catlinks")
-    categories = []
-    if cat_div:
-        for a in cat_div.find_all("a"):
-            # Sometimes the first link is just "Categories"
-            cat_text = a.get_text(strip=True)
-            if cat_text.lower() != "categories":
-                categories.append(cat_text)
-    else:
-        print(f"No categories found for {title}")
-    return title, text, categories
-
-def save_article_in_categories(title, text, categories):
-    """
-    Save a copy of the article text into folders for each category.
-    The first category gets the base filename; subsequent ones add a numeric suffix.
-    """
-    safe_title = sanitize_filename(title)
+def save_article(title, content, categories):
+    base_filename = sanitize_filename(title) + ".txt"
     if not categories:
-        # Save in an "Uncategorized" folder if no categories were found.
         categories = ["Uncategorized"]
 
-    for idx, category in enumerate(categories):
-        cat_folder = os.path.join(DEST_DIR, sanitize_filename(category))
-        os.makedirs(cat_folder, exist_ok=True)
-        # For the first occurrence, no suffix; then _2, _3, etc.
-        suffix = "" if idx == 0 else f"_{idx+1}"
-        file_path = os.path.join(cat_folder, f"{safe_title}{suffix}.txt")
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(text)
-        print(f"Saved '{title}' to '{cat_folder}' as '{os.path.basename(file_path)}'.")
+    for i, cat in enumerate(categories):
+        folder = os.path.join(SAVE_ROOT, sanitize_filename(cat))
+        os.makedirs(folder, exist_ok=True)
+
+        # For the first copy we don't add a suffix; subsequent copies get a numeric suffix.
+        suffix = f"_{i}" if i > 0 else ""
+        filename = sanitize_filename(title) + suffix + ".txt"
+        path = os.path.join(folder, filename)
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Saved '{title}' to '{folder}' as '{filename}'.")
 
 def main():
     driver = get_driver()
     try:
-        links = get_all_article_links(driver)
-        total = len(links)
-        for i, link in enumerate(links, 1):
-            print(f"[{i}/{total}] Processing: {link}")
-            title, text, categories = extract_article(driver, link)
-            if title and text:
-                save_article_in_categories(title, text, categories)
+        article_links = get_all_article_links(driver)
+        print(f"Found {len(article_links)} articles.")
+        for idx, url in enumerate(article_links):
+            # Generate a guess for the title from the URL (for skipping purposes)
+            title_guess = url.rsplit("/", 1)[-1].replace("_", " ")
+            if already_saved(title_guess):
+                print(f"[{idx+1}/{len(article_links)}] Skipping (already saved): {title_guess}")
+                continue
+
+            print(f"[{idx+1}/{len(article_links)}] Processing: {url}")
+            title, content, categories = download_article_selenium(driver, url)
+            if title and content:
+                save_article(title, content, categories)
             else:
-                print(f"Skipping article from {link} due to missing data.")
-            # Wait a moment to be polite to the server.
-            time.sleep(1)
+                print(f"Skipping article due to missing data: {url}")
+            time.sleep(1)  # Be polite
     finally:
         driver.quit()
 
