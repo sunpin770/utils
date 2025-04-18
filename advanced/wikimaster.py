@@ -7,27 +7,28 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
-BASE_URL = "https://coppermind.net"
+BASE_URL = "http://crawl.chaosforge.org/Crawl_Wiki"
 ALL_PAGES_URL = f"{BASE_URL}/wiki/Special:AllPages"
-# Use your custom destination folder:
-SAVE_ROOT = "C:\\Users\\Srulik's User\\Downloads\\ytdlp downloads\\The Coppermind"
+SAVE_ROOT = "C:\\Users\\Srulik's User\\Downloads\\ytdlp downloads\\Crawl Wiki"
+PROGRESS_LOG = os.path.join(SAVE_ROOT, "downloaded_articles.txt")
 
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', '_', name)
 
-def already_saved(title):
-    base = sanitize_filename(title)
-    for root, dirs, files in os.walk(SAVE_ROOT):
-        for file in files:
-            if file.startswith(base):
-                return True
-    return False
+def load_downloaded_titles():
+    if os.path.exists(PROGRESS_LOG):
+        with open(PROGRESS_LOG, "r", encoding="utf-8") as f:
+            return set(line.strip() for line in f)
+    return set()
+
+def mark_as_downloaded(title):
+    with open(PROGRESS_LOG, "a", encoding="utf-8") as f:
+        f.write(title + "\n")
 
 def get_driver():
     options = Options()
     options.add_argument("--start-maximized")
-    # Uncomment the next line if you want headless mode
-    # options.add_argument("--headless")
+    # options.add_argument("--headless=new")  # Uncomment if you want headless mode
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def get_all_article_links(driver):
@@ -44,7 +45,6 @@ def get_all_article_links(driver):
             if href and href.startswith("/wiki/") and not href.startswith("/wiki/Special:"):
                 full_url = BASE_URL + href
                 links.add(full_url)
-        # Use visible text to pick out the next page link.
         next_link = soup.find("a", text=lambda t: t and t.strip().startswith("Next page"))
         if next_link and next_link.get("href"):
             next_url = BASE_URL + next_link.get("href")
@@ -56,9 +56,8 @@ def get_all_article_links(driver):
     return sorted(links)
 
 def download_article_selenium(driver, url):
-    """Load an article page using Selenium and extract title, content, and categories."""
     driver.get(url)
-    time.sleep(2)  # Wait for the page to load
+    time.sleep(2)
     soup = BeautifulSoup(driver.page_source, "html.parser")
     title_tag = soup.find("h1", id="firstHeading")
     content_tag = soup.find("div", class_="mw-parser-output")
@@ -82,7 +81,6 @@ def save_article(title, content, categories):
         folder = os.path.join(SAVE_ROOT, sanitize_filename(cat))
         os.makedirs(folder, exist_ok=True)
 
-        # For the first copy we don't add a suffix; subsequent copies get a numeric suffix.
         suffix = f"_{i}" if i > 0 else ""
         filename = sanitize_filename(title) + suffix + ".txt"
         path = os.path.join(folder, filename)
@@ -93,13 +91,16 @@ def save_article(title, content, categories):
 
 def main():
     driver = get_driver()
+    downloaded_titles = load_downloaded_titles()
+
     try:
         article_links = get_all_article_links(driver)
         print(f"Found {len(article_links)} articles.")
+
         for idx, url in enumerate(article_links):
-            # Generate a guess for the title from the URL (for skipping purposes)
             title_guess = url.rsplit("/", 1)[-1].replace("_", " ")
-            if already_saved(title_guess):
+
+            if title_guess in downloaded_titles:
                 print(f"[{idx+1}/{len(article_links)}] Skipping (already saved): {title_guess}")
                 continue
 
@@ -107,9 +108,11 @@ def main():
             title, content, categories = download_article_selenium(driver, url)
             if title and content:
                 save_article(title, content, categories)
+                mark_as_downloaded(title)
             else:
                 print(f"Skipping article due to missing data: {url}")
-            time.sleep(1)  # Be polite
+            time.sleep(1)
+
     finally:
         driver.quit()
 

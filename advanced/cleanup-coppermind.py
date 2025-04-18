@@ -3,7 +3,7 @@ import re
 import shutil
 
 # --- Configuration ---
-ROOT_DIR = r"C:\Users\Srulik's User\Downloads\ytdlp downloads\The Coppermind"
+ROOT_DIR = "C:\\Users\\Srulik's User\\Downloads\\ytdlp downloads\\The Coppermind"
 MIN_FILES = 10
 
 # --- Logic ---
